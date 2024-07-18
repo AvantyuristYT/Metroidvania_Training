@@ -7,36 +7,59 @@ public class PlayerController : MonoBehaviour
 {
     // REFERENCES
     private Rigidbody2D rigidBody;
+    private Animator animator;
+
+    [Space]
 
     // VARIABLES
     private float movementInputDirection;
 
     [SerializeField][Min(0)] private float movementSpeed = 5f;
     [SerializeField][Min(0)] private float jumpForce = 5f;
+    [Space]
+    [SerializeField] private Transform groundCheck;
+    [SerializeField][Min(0)] private float groundCheckRadius = 1f;
+    [SerializeField] private LayerMask groundLayerMask;
+    [Space]
+    [SerializeField][Min(0)] private int amountOfJumps = 1;
+                             private int amountOfJumpsLeft;
+    [Space]
+    [SerializeField] private Transform wallCheck;
+    [SerializeField][Min(0)] private float wallCheckDistance = 1f;
 
     // BOOLEANS
     private bool isFacingRight = true;
+    private bool isWalking = false;
+    private bool isGrounded = false;
+    private bool isTouchingWall = false;
+
+    private bool canJump = true;
 
 
     private void Awake()
     {
         rigidBody = GetComponent<Rigidbody2D>();
+        animator = GetComponentInChildren<Animator>();
     }
 
     private void Start()
     {
-        
+        amountOfJumpsLeft = amountOfJumps;
     }
 
     private void Update()
     {
         CheckInput();
         CheckMovementDirection();
+        CheckIfCanJump();
+
+        UpdateAnimations();
     }
 
     private void FixedUpdate()
     {
         ApplyMovement();
+        CheckSurroundings();
     }
 
     private void CheckInput()
@@ -52,11 +75,33 @@ public class PlayerController : MonoBehaviour
         rigidBody.velocity = new Vector2(movementInputDirection * movementSpeed, rigidBody.velocity.y);
     }
 
-    private void Jump()
+    private void CheckIfCanJump()
     {
-        rigidBody.velocity = new Vector2(rigidBody.velocity.x, jumpForce);
+        if (isGrounded && rigidBody.velocity.y < 0.1)
+        {
+            amountOfJumpsLeft = amountOfJumps;
+        }
+
+        if (amountOfJumpsLeft <= 0)
+            canJump = false;
+        else
+            canJump = true;
     }
 
+    private void Jump()
+    {
+        if (!canJump)
+            return;
+
+        rigidBody.velocity = new Vector2(rigidBody.velocity.x, jumpForce);
+        amountOfJumpsLeft--;
+    }
+
+    private void CheckSurroundings()
+    {
+        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayerMask);
+        isTouchingWall = Physics2D.Raycast(wallCheck.position, transform.right, wallCheckDistance, groundLayerMask);
+    }
 
     private void CheckMovementDirection()
     {
@@ -64,11 +109,32 @@ public class PlayerController : MonoBehaviour
             Flip();
         else if (!isFacingRight && movementInputDirection > 0)
             Flip();
+
+        if (movementInputDirection != 0)
+            isWalking = true;
+        else
+            isWalking = false;
     }
 
     private void Flip()
     {
         isFacingRight = !isFacingRight;
         transform.Rotate(0, 180, 0);
+    }
+
+    private void UpdateAnimations()
+    {
+        animator.SetBool("IsWalking", isWalking);
+        animator.SetBool("IsGrounded", isGrounded);
+        animator.SetFloat("YVelocity", rigidBody.velocity.y);
+    }
+
+
+
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+        Gizmos.DrawLine(wallCheck.position, new Vector2(wallCheck.position.x + wallCheckDistance, wallCheck.position.y));
     }
 }
