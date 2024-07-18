@@ -52685,6 +52685,10 @@ MonoBehaviour:
   amountOfJumps: 1
   wallCheck: {fileID: 1817060684}
   wallCheckDistance: 0.4
+  wallSlidingSpeed: 2
+  movementForceInAir: 10
+  airDragMultiplier: 0.95
+  variableJumpHeightMultiplier: 0.5
 --- !u!61 &1123241503
 BoxCollider2D:
   m_ObjectHideFlags: 0

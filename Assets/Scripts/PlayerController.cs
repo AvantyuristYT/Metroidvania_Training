@@ -6,7 +6,7 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     // REFERENCES
-    private Rigidbody2D rigidBody;
+    private Rigidbody2D rb;
     private Animator animator;
 
     [Space]
@@ -27,6 +27,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Transform wallCheck;
     [SerializeField][Min(0)] private float wallCheckDistance = 1f;
     [SerializeField][Min(0)] private float wallSlidingSpeed = 2f;
+    [Space]
+    [SerializeField] private float movementForceInAir;
+    [SerializeField] private float airDragMultiplier = 0.95f;
+    [SerializeField] private float variableJumpHeightMultiplier = 0.5f;
 
     // BOOLEANS
     private bool isFacingRight = true;
@@ -40,7 +44,7 @@ public class PlayerController : MonoBehaviour
 
     private void Awake()
     {
-        rigidBody = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody2D>();
         animator = GetComponentInChildren<Animator>();
     }
 
@@ -71,27 +75,44 @@ public class PlayerController : MonoBehaviour
 
         if (Input.GetButtonDown("Jump"))
             Jump();
+
+        if (Input.GetButtonUp("Jump"))
+            rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * variableJumpHeightMultiplier);
     }
 
     private void ApplyMovement()
     {
         if (isGrounded)
         {
-            rigidBody.velocity = new Vector2(movementInputDirection * movementSpeed, rigidBody.velocity.y);
+            rb.velocity = new Vector2(movementInputDirection * movementSpeed, rb.velocity.y);
+        }
+        else if (!isGrounded && !isWallSliding && movementInputDirection != 0)
+        {
+            Vector2 forceToAdd = new Vector2(movementInputDirection * movementForceInAir, 0);
+            rb.AddForce(forceToAdd);
+
+            if (Mathf.Abs(rb.velocity.x) > movementSpeed)
+            {
+                rb.velocity = new Vector2(movementInputDirection * movementSpeed, rb.velocity.y);
+            }
+        }
+        else if (!isGrounded && !isWalking && movementInputDirection == 0)
+        {
+            rb.velocity = new Vector2(rb.velocity.x * airDragMultiplier, rb.velocity.y);
         }
 
         if (isWallSliding)
         {
-            if (rigidBody.velocity.y < -wallSlidingSpeed)
+            if (rb.velocity.y < -wallSlidingSpeed)
             {
-                rigidBody.velocity = new Vector2(rigidBody.velocity.x, -wallSlidingSpeed);
+                rb.velocity = new Vector2(rb.velocity.x, -wallSlidingSpeed);
             }
         }
     }
 
     private void CheckIfCanJump()
     {
-        if (isGrounded && rigidBody.velocity.y < 0.1)
+        if (isGrounded && rb.velocity.y < 0.1)
         {
             amountOfJumpsLeft = amountOfJumps;
         }
@@ -107,7 +128,7 @@ public class PlayerController : MonoBehaviour
         if (!canJump)
             return;
 
-        rigidBody.velocity = new Vector2(rigidBody.velocity.x, jumpForce);
+        rb.velocity = new Vector2(rb.velocity.x, jumpForce);
         amountOfJumpsLeft--;
     }
 
@@ -132,7 +153,7 @@ public class PlayerController : MonoBehaviour
 
     private void CheckIfWallSliding()
     {
-        if (isTouchingWall && !isGrounded && rigidBody.velocity.y < 0.01)
+        if (isTouchingWall && !isGrounded && rb.velocity.y < 0.01)
             isWallSliding = true;
         else
             isWallSliding = false;
@@ -153,7 +174,7 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("IsGrounded", isGrounded);
         animator.SetBool("IsWallSliding", isWallSliding);
 
-        animator.SetFloat("YVelocity", rigidBody.velocity.y);
+        animator.SetFloat("YVelocity", rb.velocity.y);
     }
 
 
