@@ -26,12 +26,14 @@ public class PlayerController : MonoBehaviour
     [Space]
     [SerializeField] private Transform wallCheck;
     [SerializeField][Min(0)] private float wallCheckDistance = 1f;
+    [SerializeField][Min(0)] private float wallSlidingSpeed = 2f;
 
     // BOOLEANS
     private bool isFacingRight = true;
     private bool isWalking = false;
     private bool isGrounded = false;
     private bool isTouchingWall = false;
+    private bool isWallSliding = false;
 
     private bool canJump = true;
 
@@ -52,6 +54,7 @@ public class PlayerController : MonoBehaviour
         CheckInput();
         CheckMovementDirection();
         CheckIfCanJump();
+        CheckIfWallSliding();
 
         UpdateAnimations();
     }
@@ -72,7 +75,18 @@ public class PlayerController : MonoBehaviour
 
     private void ApplyMovement()
     {
-        rigidBody.velocity = new Vector2(movementInputDirection * movementSpeed, rigidBody.velocity.y);
+        if (isGrounded)
+        {
+            rigidBody.velocity = new Vector2(movementInputDirection * movementSpeed, rigidBody.velocity.y);
+        }
+
+        if (isWallSliding)
+        {
+            if (rigidBody.velocity.y < -wallSlidingSpeed)
+            {
+                rigidBody.velocity = new Vector2(rigidBody.velocity.x, -wallSlidingSpeed);
+            }
+        }
     }
 
     private void CheckIfCanJump()
@@ -116,16 +130,29 @@ public class PlayerController : MonoBehaviour
             isWalking = false;
     }
 
+    private void CheckIfWallSliding()
+    {
+        if (isTouchingWall && !isGrounded && rigidBody.velocity.y < 0.01)
+            isWallSliding = true;
+        else
+            isWallSliding = false;
+    }
+
     private void Flip()
     {
-        isFacingRight = !isFacingRight;
-        transform.Rotate(0, 180, 0);
+        if (!isWallSliding)
+        {
+            isFacingRight = !isFacingRight;
+            transform.Rotate(0, 180, 0);
+        }
     }
 
     private void UpdateAnimations()
     {
         animator.SetBool("IsWalking", isWalking);
         animator.SetBool("IsGrounded", isGrounded);
+        animator.SetBool("IsWallSliding", isWallSliding);
+
         animator.SetFloat("YVelocity", rigidBody.velocity.y);
     }
 
