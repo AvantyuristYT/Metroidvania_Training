@@ -23,11 +23,15 @@ public class PlayerState
         DoChecks();
         player.AnimatorController.SetBool(animBoolName, true);
         startTime = Time.time;
+
+        Debug.Log("Вошёл в " + animBoolName);
     }
 
     public virtual void Exit()
     {
         player.AnimatorController.SetBool(animBoolName, false);
+
+        Debug.Log("Вышел из " + animBoolName);
     }
 
     public virtual void LogicUpdate()
